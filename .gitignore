@@ -1,9 +1,10 @@
 .mamba/
 .cache/
 third_party/
-setup-*.log
-__pycache__/
+data/
 results/
+logs/
+__pycache__/
+setup-*.log
 check-*.log
 smoke-*.log
-data/

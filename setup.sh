@@ -48,6 +48,15 @@ pip install opencv-python-headless==4.10.0.84 \
     sympy kornia==0.8.1 loguru
 pip install --no-deps nerfbaselines==1.2.9 superpoint_superglue_deployment==0.0.3
 
+# NerfBaselines 1.2.9 loads masks as H x W, but its gsplat code multiplies them with H x W x 3 images.
+GSPLAT_METHOD="$(python -c 'import site; print(site.getsitepackages()[0])')/nerfbaselines/methods/gsplat.py"
+sed -i 's/sampling_mask = data\["sampling_mask"\].to(self.device)$/sampling_mask = data["sampling_mask"].to(self.device)[..., None]/' "$GSPLAT_METHOD"
+grep -q 'to(self.device)\[..., None\]' "$GSPLAT_METHOD"
+# Loading a checkpoint runs a nearest-neighbor search on placeholder points that are then discarded.
+# With many identical points that search takes hours, so a small placeholder is used.
+sed -i 's/np.zeros((state\["num_points"\], 3)/np.zeros((min(state["num_points"], 1000), 3)/' "$GSPLAT_METHOD"
+grep -q 'min(state\["num_points"\], 1000)' "$GSPLAT_METHOD"
+
 echo "==> Compiling gsplat"
 export LIBRARY_PATH="$CONDA_PREFIX/lib/stubs"
 ln -sf "$CC" "$CONDA_PREFIX/bin/gcc"
