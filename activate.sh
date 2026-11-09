@@ -1,7 +1,9 @@
 # Load the environment in your current shell:  source activate.sh
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export REPO_DIR
-export ENV_PREFIX="$REPO_DIR/.mamba/gsfeatloc"
+export ENV_PREFIX="$(readlink -f "$REPO_DIR/.mamba/gsfeatloc" 2>/dev/null || echo "$REPO_DIR/.mamba/gsfeatloc")"
+# New files stay read-only for the rest of the class.
+umask 022
 
 module purge
 module load mamba/py3.12

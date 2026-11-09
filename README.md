@@ -2,116 +2,116 @@
 
 Tests whether [GSFeatLoc](https://github.com/jongwonjlee/gsfeatloc) can locate photos from different seasons in a summer 3D Gaussian splat of U-M North Campus, built from the [NCLT dataset](https://robots.engin.umich.edu/nclt/).
 
-The test uses one 250 m building-heavy stretch of campus:
+The team shares one copy of the environment, corrected photos and trained splat. You don't install or download anything.
 
-| Session | Conditions | Used for |
-|---|---|---|
-| 2012-08-04 | Morning, sunny, summer | Training the splat, and summer test photos it never trained on |
-| 2012-11-04 | Morning, cloudy, no leaves | Fall test photos |
-| 2012-02-12 | Midday, sunny, snow | Winter test photos |
-
-## 1. Install
-
-Takes about 40 minutes once the job starts. Uses 14 GB and about 70,000 files.
-
-The class shares a limit of about 1 million files, so check it first:
-
-```bash
-scratch-quota rob498_rob598s002f26_class_root
-```
-
-Look at the `files` and `limit` columns on the right. The limit is 1,048,576. You need about 92,000 files free for the install and the full run.
-
-Then install:
+## Start here
 
 ```bash
 cd /scratch/rob498_rob598s002f26_class_root/rob498_rob598s002f26_class/$USER
 git clone https://github.com/gsfeatloc-seasons/gsfeat_greatlakes_env.git
 cd gsfeat_greatlakes_env
-sbatch setup_greatlakes.sbatch
+bash setup_shared.sh
+source activate.sh
 ```
 
-Check the job with `squeue -u $USER`. When it's gone from the list, run:
+Run `source activate.sh` from this folder in every new shell.
+
+To run GSFeatLoc on the shared splat, which takes about 10 minutes once it starts:
 
 ```bash
-tail setup-*.log
+bash nclt/run_localize.sh
 ```
 
-The last line should say `SETUP COMPLETE`.
+Your results go in your own `results/` folder.
 
-## 2. Run everything
+## Where the data is
 
-From the `gsfeat_greatlakes_env` folder:
+After `setup_shared.sh`, these are in your folder. They are read-only.
 
-```bash
-bash nclt/run_all.sh
-```
+| What | Where |
+|---|---|
+| **Corrected training photos (summer)** | `data/nclt/stretch_A/dataset/2012-08-04/images/` |
+| Robot masks for those photos | `data/nclt/stretch_A/dataset/2012-08-04/sampling_masks/` |
+| Camera positions and 3D points | `data/nclt/stretch_A/dataset/2012-08-04/sparse/0/` |
+| Train and test photo lists | `data/nclt/stretch_A/dataset/2012-08-04/train_list.txt` and `test_list.txt` |
+| **Corrected test photos** | `data/nclt/stretch_A/queries/SESSION/images/` |
+| True camera position of each test photo | `data/nclt/stretch_A/queries/SESSION/poses.json` |
+| Trained splat | `results/splat/stretch_A_2012-08-04/checkpoint-30000/` |
+| Splat renders beside real photos | `results/splat/stretch_A_2012-08-04/predictions-30000.tar.gz` |
 
-This submits 6 jobs that run in order. Expect about 1.5 to 2 hours plus queue time. It uses about 15 GB and 22,000 files.
+`SESSION` is one of these:
 
-| Step | What it does | Time |
+| Session | Conditions | Used for |
 |---|---|---|
-| 1. Prepare | Downloads positions and calibration | 1 min |
-| 2. Pull images | Keeps only the photos from our stretch | 20 min per session |
-| 3. Pull laser scans | Keeps only the scans from that stretch | 5 min |
-| 4. Build dataset | Corrects and masks the photos | 15 min |
-| 5. Train splat | Trains on the August 4 photos | 30 min |
-| 6. Localize | Runs GSFeatLoc on all three seasons | 10 min |
+| 2012-08-04 | Morning, sunny, summer | Training, and summer test photos it never trained on |
+| 2012-11-04 | Morning, cloudy, no leaves | Fall test photos |
+| 2012-02-12 | Midday, sunny, snow | Winter test photos |
 
-### Check progress
+All photos are 780 x 1170 with one shared pinhole camera: focal length 400, center (390, 585). Positions are in meters in NCLT's frame, which is the same for every session.
+
+## Train your own splat
+
+Give it a new name, so you don't touch the shared one. In `nclt/config.sh`, change `SPLAT_DIR`:
+
+```bash
+SPLAT_DIR="results/splat/my_splat"
+```
+
+Then:
+
+```bash
+bash nclt/run_localize.sh
+```
+
+This trains on the shared summer photos (about 30 minutes), then runs GSFeatLoc on your splat. To also keep its results apart, change `RESULTS_DIR` the same way.
+
+To change training settings, edit `nclt/jobs/5_train_splat.sbatch`. Use `gsplat` through NerfBaselines, because GSFeatLoc needs depth.
+
+## Check progress
 
 ```bash
 squeue -u $USER
 ```
 
-- `PENDING`: waiting for its turn or for the step before it
+- `PENDING`: waiting for its turn
 - `RUNNING`: working now
-- Nothing listed: all done, or a step failed
+- Nothing listed: finished or failed
 
-See how the steps ended:
+See how your jobs ended:
 
 ```bash
 sacct -X -S today --format=JobName%20,State,Elapsed
 ```
 
-Each step writes a log to `logs/`. To read the newest one:
+Each job writes a log to `logs/`. To read the newest one:
 
 ```bash
 tail -n 20 "logs/$(ls -t logs | head -1)"
 ```
 
-The last step's log ends with `PIPELINE COMPLETE` when everything worked.
+The GSFeatLoc log ends with `PIPELINE COMPLETE` when everything worked.
 
-### If a step fails
+Run anything that needs a GPU through Slurm, not on the login node. Don't use `watch` on `squeue`, because the cluster rules don't allow it.
 
-The steps after it are cancelled. Read that step's log in `logs/`, fix the problem, and run `bash nclt/run_all.sh` again. Finished downloads and training are skipped.
-
-## 3. See the results
-
-Everything is in the `gsfeat_greatlakes_env` folder.
-
-| What | Where |
-|---|---|
-| Results table | `python nclt/show_results.py` |
-| Pictures of the matches | `results/gsfeatloc/stretch_A_2012-08-04/vis/` |
-| Results as data | `results/gsfeatloc/stretch_A_2012-08-04/summary.json` |
-| Results for every photo | `results/gsfeatloc/stretch_A_2012-08-04/SESSION_levelN.json` |
-| Splat quality scores | `results/splat/stretch_A_2012-08-04/results-30000.json` |
-| Splat renders and real photos | `results/splat/stretch_A_2012-08-04/predictions-30000.tar.gz` |
-| Trained splat | `results/splat/stretch_A_2012-08-04/checkpoint-30000/` |
-| Training photos | `data/nclt/stretch_A/dataset/2012-08-04/images/` |
-| Test photos | `data/nclt/stretch_A/queries/SESSION/images/` |
-
-In the per-photo files, level 0, 1 and 2 are the three starting errors in the table below.
-
-### Results table
+## See the results
 
 ```bash
-source activate.sh
 python nclt/show_results.py
 ```
 
-Each row is one season at one starting error. GSFeatLoc starts from a wrong camera position, and we measure how close it gets to the true one. For example, `start 3m 15deg` means 95% of starting positions are within 3 m and 15 degrees.
+If you changed `RESULTS_DIR`, add that folder to the end of the command.
+
+| What | Where |
+|---|---|
+| Pictures of the matches | `results/gsfeatloc/stretch_A_2012-08-04/vis/` |
+| Results as data | `results/gsfeatloc/stretch_A_2012-08-04/summary.json` |
+| Results for every photo | `results/gsfeatloc/stretch_A_2012-08-04/SESSION_levelN.json` |
+
+In the per-photo files, level 0, 1 and 2 are the three starting errors below.
+
+### Reading the table
+
+GSFeatLoc starts from a wrong camera position, and we measure how close it gets to the true one. For example, `start 3m 15deg` means 95% of starting positions are within 3 m and 15 degrees.
 
 | Column | Meaning |
 |---|---|
@@ -125,7 +125,7 @@ Each row is one season at one starting error. GSFeatLoc starts from a wrong came
 
 "Typical" means the median. Failed photos are included in every column.
 
-Your numbers should match these if you use the same data and settings. A newly trained splat will differ somewhat.
+With the shared splat, you should get these numbers:
 
 ```
 Run                                 Failed  Start (m)  Final (m) Final deg    <0.25m     <0.5m       <1m
@@ -140,7 +140,7 @@ Run                                 Failed  Start (m)  Final (m) Final deg    <0
 2012-02-12 start 10m 30deg             79%       3.40       3.40       7.5        1%        8%       17%
 ```
 
-### Pictures and other files
+### Viewing images in your browser
 
 1. Open https://greatlakes.arc-ts.umich.edu and go to **Files**.
 2. Click **Go To...** and enter:
@@ -149,18 +149,28 @@ Run                                 Failed  Start (m)  Final (m) Final deg    <0
    ```
 3. Open `results/gsfeatloc/stretch_A_2012-08-04/vis/`.
 
-Each picture shows the real photo on the left and the splat render on the right. Green lines are accepted matches, and every third one is drawn. No lines means the photo failed. There are 3 pictures per season, all starting from up to 3 m and 15 degrees of error.
+Each picture shows the real photo on the left and the splat render on the right. Green lines are accepted matches, and every third one is drawn. No lines means the photo failed.
 
-## Change something
+## Rebuild everything from scratch
 
-- **Use other sessions:** edit `SESSIONS` in `nclt/config.sh`. The first one trains the splat.
-- **Retrain the splat:** delete `results/splat/stretch_A_2012-08-04`, then run `bash nclt/run_all.sh`. To keep the old one, change `SPLAT_DIR` in `nclt/config.sh` instead.
-- **Change training settings:** edit `nclt/jobs/5_train_splat.sbatch`.
-- **Train a splat another way:** use `gsplat` through NerfBaselines, because GSFeatLoc needs depth.
+You only need this to use a different stretch of campus or different sessions, or if the shared folder is gone. Don't run `setup_shared.sh` first. It needs its own 29 GB and about 92,000 files, and the class shares a limit of about 1 million files:
 
-Run `source activate.sh` in every new shell. Run anything that needs a GPU through Slurm, not on the login node. Don't use `watch` on `squeue`, because the cluster rules don't allow it.
+```bash
+scratch-quota rob498_rob598s002f26_class_root
+```
 
-## Check the install
+Install, then wait for `SETUP COMPLETE` at the end of `setup-*.log`:
 
-- `sbatch scripts/check_env.sbatch` checks the GPU, gsplat and the matchers. It takes about a minute. The result is in `check-*.log` and should end with `ALL CHECKS PASSED`.
-- `sbatch scripts/smoke_test.sbatch` trains a small sample scene and runs GSFeatLoc on it. It takes about 20 minutes. Results are at the end of `smoke-*.log`, with about 97% success.
+```bash
+sbatch setup_greatlakes.sbatch
+```
+
+Run all 6 steps, which takes about 1.5 to 2 hours plus queue time:
+
+```bash
+bash nclt/run_all.sh
+```
+
+To use other sessions, edit `SESSIONS` in `nclt/config.sh`. The first one trains the splat.
+
+To check an install, run `sbatch scripts/check_env.sbatch`. It should end with `ALL CHECKS PASSED` in `check-*.log`.
