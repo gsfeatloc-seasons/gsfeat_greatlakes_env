@@ -1,0 +1,53 @@
+diff --git a/gsfeatloc/dataset_loader.py b/gsfeatloc/dataset_loader.py
+index a1074e0..aa68e43 100644
+--- a/gsfeatloc/dataset_loader.py
++++ b/gsfeatloc/dataset_loader.py
+@@ -12,7 +12,6 @@
+ import numpy as np
+ import json
+ from pathlib import Path
+-import pycolmap
+ 
+ 
+ def load_frames_blender(dataset_path: str) -> tuple[np.ndarray, int, int, dict[str, np.ndarray]]:
+@@ -76,6 +75,10 @@ def load_frames_colmap(dataset_path: str, downscale_factor : int = 1) -> tuple[n
+         tuple: A tuple containing an array of camera parameters, width, height, and a dictionary with filenames as keys and transformation matrices as values.
+     """
+ 
++    # Imported here because gsplat needs a different package that is also named pycolmap.
++    # This function needs the official pycolmap, which is not installed by default.
++    import pycolmap
++
+     # Load the COLMAP reconstruction
+     if not dataset_path.exists():
+         raise FileNotFoundError(f"No COLMAP reconstruction found in {dataset_path}. Please provide a valid path to the dataset.")
+diff --git a/gsfeatloc_cli.py b/gsfeatloc_cli.py
+index f6cb773..1f46408 100644
+--- a/gsfeatloc_cli.py
++++ b/gsfeatloc_cli.py
+@@ -44,6 +44,7 @@ def main():
+     parser.add_argument("--scene_path", type=str, required=True, help="Path to the dataset")
+     parser.add_argument("--model_path", type=str, required=True, help="Path to the gsplat model checkpoint")
+     parser.add_argument("--output_path", type=str, required=True, help="Path to save JSON results")
++    parser.add_argument("--depth_scale", type=float, default=4.0, help="Multiplier from rendered depth to world units. 4.0 is the upstream value; calibrate it for your own splat.")
+     parser.add_argument("--output_filename", type=str, default="results.json", help="Filename for saving results")
+     parser.add_argument("--delta_rot", type=float, default=30, help="Perturbation in initial guess for rotation")
+     parser.add_argument("--delta_trs", type=float, default=0.2, help="Perturbation in initial guess for translation")
+@@ -60,7 +61,7 @@ def main():
+ 
+     # Start the docker backend and load the checkpoint
+     stack = ExitStack().__enter__()
+-    model, _ = stack.enter_context(load_checkpoint(args.model_path, backend="docker"))
++    model, _ = stack.enter_context(load_checkpoint(args.model_path, backend=os.environ.get("GSFEATLOC_BACKEND", "python")))
+     
+     # Determine the source of test data
+     transforms_test_path = Path(args.scene_path, "transforms_test.json")
+@@ -149,7 +150,7 @@ def main():
+         if len(matches) >= 4:
+             # Compute 3D points in the world and camera frames
+             p_inW, p_inC = compute_3d_points(
+-            pts_reference, depth_reference, K, T_inW_ofC_perturbated, depth_scale=4.0
++            pts_reference, depth_reference, K, T_inW_ofC_perturbated, depth_scale=args.depth_scale
+             )
+             
+             # Estimate the camera pose using solvePnPRansac

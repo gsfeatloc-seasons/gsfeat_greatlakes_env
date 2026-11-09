@@ -1,0 +1,15 @@
+# Build tools only. Python packages are installed by setup.sh in a fixed order.
+name: gsfeatloc
+channels:
+  - nvidia/label/cuda-11.8.0
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - git
+  - cuda-toolkit=11.8
+  - gcc_linux-64=11
+  - gxx_linux-64=11
+  - make=4.3
+  - cmake=3.28.3
+  - ffmpeg<=7.1.0

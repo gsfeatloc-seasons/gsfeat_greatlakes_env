@@ -1,0 +1,9 @@
+.mamba/
+.cache/
+third_party/
+setup-*.log
+__pycache__/
+results/
+check-*.log
+smoke-*.log
+data/
