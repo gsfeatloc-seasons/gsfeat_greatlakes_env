@@ -37,15 +37,17 @@ bash setup_shared.sh
 source activate.sh
 ```
 
-**2. See the numbers.** Change the letter to see each stretch:
+**2. See the numbers.** One command compares every stretch:
 
 ```bash
-python nclt/show_results.py shared_results/stretch_A_2012-08-04
-python nclt/show_results.py shared_results/stretch_B_2012-08-04
-python nclt/show_results.py shared_results/stretch_C_2012-08-04
+python nclt/compare_results.py
 ```
 
-"Reading the table" below explains each column. Quick version: higher `<0.25m` is better, lower `Failed` is better.
+It explains its own columns at the bottom. For the full table of one stretch, change the letter:
+
+```bash
+python nclt/show_results.py shared_results/stretch_B_2012-08-04
+```
 
 **3. See the pictures.** In https://greatlakes.arc-ts.umich.edu, open **Files**, click **Go To...** and paste:
 
