@@ -1,5 +1,5 @@
 #!/bin/bash
-# Trains the 3DGS splat. Skips training if this splat already exists.
+# Trains the splat with METHOD (default gsplat). Skips training if this splat already exists.
 # To retrain, delete the folder named by SPLAT_DIR in nclt/config.sh.
 #SBATCH --job-name=nclt-5-train
 #SBATCH --account=rob498_rob598s002f26_class
@@ -16,13 +16,16 @@ source ./activate.sh
 source nclt/config.sh
 unset DISPLAY WAYLAND_DISPLAY
 export MPLBACKEND=Agg
-export NERFBASELINES_BACKEND=python
 
-if [ -d "$SPLAT_DIR/checkpoint-30000" ]; then
+if [ -n "$(latest_checkpoint)" ]; then
     echo "Splat already exists in $SPLAT_DIR. Skipping training."
     exit 0
 fi
 
-nerfbaselines train --method gsplat --data "$STRETCH_DIR/dataset/$MAP_SESSION" --output "$SPLAT_DIR" \
-    --backend python --logger none --disable-output-artifact \
-    --set app_opt=True --set pose_opt=True
+case "$METHOD" in
+    gsplat) METHOD_ARGS=(--set app_opt=True --set pose_opt=True) ;;
+    *) METHOD_ARGS=() ;;
+esac
+
+nerfbaselines train --method "$METHOD" --data "$STRETCH_DIR/dataset/$MAP_SESSION" --output "$SPLAT_DIR" \
+    --backend "$NB_BACKEND" --logger none --disable-output-artifact "${METHOD_ARGS[@]}"

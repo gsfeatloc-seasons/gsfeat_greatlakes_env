@@ -13,11 +13,19 @@ cd "$SLURM_SUBMIT_DIR"
 source ./activate.sh
 source nclt/config.sh
 
-OUT="$STRETCH_DIR/velodyne/$MAP_SESSION"
-if [ -f "$OUT/.done" ]; then
-    echo "$MAP_SESSION already done: $(cat "$OUT/.done")"
+# PULL_STRETCHES (default: STRETCH) lists stretches to fill from one pass over the archive, e.g. "B C".
+PAIRS=()
+for stretch in ${PULL_STRETCHES:-$STRETCH}; do
+    out="data/nclt/stretch_$stretch/velodyne/$MAP_SESSION"
+    if [ -f "$out/.done" ]; then
+        echo "Stretch $stretch, $MAP_SESSION already done: $(cat "$out/.done")"
+    else
+        PAIRS+=("data/nclt/stretch_$stretch/windows_$MAP_SESSION.json" "$out")
+    fi
+done
+if [ ${#PAIRS[@]} -eq 0 ]; then
     exit 0
 fi
 
 curl -sS --fail "$NCLT_URL/velodyne_data/${MAP_SESSION}_vel.tar.gz" | gzip -dc | \
-    python -u nclt/extract_velodyne.py "$STRETCH_DIR/windows_$MAP_SESSION.json" "$OUT"
+    python -u nclt/extract_velodyne.py "${PAIRS[@]}"

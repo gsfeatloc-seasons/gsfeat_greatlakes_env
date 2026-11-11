@@ -7,6 +7,7 @@ All poses stay in NCLT's shared metric frame, so every session can be scored in 
 """
 import argparse
 import json
+import os
 import struct
 import sys
 from pathlib import Path
@@ -18,7 +19,7 @@ from scipy.spatial.transform import Rotation, Slerp
 sys.path.insert(0, str(Path(__file__).parent))
 from undistort import load_map  # noqa: E402
 
-ROOT = Path("data/nclt/stretch_A")
+ROOT = Path(os.environ.get("STRETCH_DIR", "data/nclt/stretch_A"))
 CALIB = Path("data/nclt/calib")
 CAMERAS = [1, 2, 3, 4, 5]
 FOCAL = 400.0
@@ -299,7 +300,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--session", default="2012-08-04")
     parser.add_argument("--stage", choices=["preview", "build", "queries"], required=True)
-    parser.add_argument("--preview_out", default="data/nclt/stretch_A/preview.jpg")
+    parser.add_argument("--preview_out", default=str(ROOT / "preview.jpg"))
     args = parser.parse_args()
 
     windows = json.loads((ROOT / f"windows_{args.session}.json").read_text())

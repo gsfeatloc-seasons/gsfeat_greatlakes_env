@@ -16,12 +16,19 @@ source nclt/config.sh
 
 read -r -a ALL_SESSIONS <<< "$SESSIONS"
 SESSION="${ALL_SESSIONS[$SLURM_ARRAY_TASK_ID]}"
-OUT="$STRETCH_DIR/images/$SESSION"
-
-if [ -f "$OUT/.done" ]; then
-    echo "$SESSION already done: $(cat "$OUT/.done")"
+# PULL_STRETCHES (default: STRETCH) lists stretches to fill from one pass over the archive, e.g. "B C".
+PAIRS=()
+for stretch in ${PULL_STRETCHES:-$STRETCH}; do
+    out="data/nclt/stretch_$stretch/images/$SESSION"
+    if [ -f "$out/.done" ]; then
+        echo "Stretch $stretch, $SESSION already done: $(cat "$out/.done")"
+    else
+        PAIRS+=("data/nclt/stretch_$stretch/windows_$SESSION.json" "$out")
+    fi
+done
+if [ ${#PAIRS[@]} -eq 0 ]; then
     exit 0
 fi
 
 curl -sS --fail "$NCLT_URL/images/${SESSION}_lb3.tar.gz" | gzip -dc | \
-    python -u nclt/extract_images.py "$STRETCH_DIR/windows_$SESSION.json" "$OUT"
+    python -u nclt/extract_images.py "${PAIRS[@]}"

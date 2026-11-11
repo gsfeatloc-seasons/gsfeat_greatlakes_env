@@ -24,6 +24,51 @@ bash nclt/run_localize.sh
 
 Your results go in your own `results/` folder.
 
+## Get the team's newest results (Stretch A, B and C)
+
+Already set up before? Do these 3 steps in a terminal on Great Lakes. New here? Do "Start here" above first.
+
+**1. Update your copy** (pulls new scripts and links new results):
+
+```bash
+cd /scratch/rob498_rob598s002f26_class_root/rob498_rob598s002f26_class/$USER/gsfeat_greatlakes_env
+git pull
+bash setup_shared.sh
+source activate.sh
+```
+
+**2. See the numbers.** Change the letter to see each stretch:
+
+```bash
+python nclt/show_results.py shared_results/stretch_A_2012-08-04
+python nclt/show_results.py shared_results/stretch_B_2012-08-04
+python nclt/show_results.py shared_results/stretch_C_2012-08-04
+```
+
+"Reading the table" below explains each column. Quick version: higher `<0.25m` is better, lower `Failed` is better.
+
+**3. See the pictures.** In https://greatlakes.arc-ts.umich.edu, open **Files**, click **Go To...** and paste:
+
+```
+/scratch/rob498_rob598s002f26_class_root/rob498_rob598s002f26_class/nandann/gsfeat_greatlakes_env/results/gsfeatloc
+```
+
+Open a stretch folder, then `vis/`. Left is the real photo, right is the splat, green lines are matches.
+
+The stretches:
+
+| Stretch | What's there | Summer drives in training |
+|---|---|---|
+| A | Right next to buildings, almost no trees | 1 |
+| B | Mostly buildings, some trees | 4 |
+| C | Buildings with lots of trees | 4 |
+
+To run GSFeatLoc yourself on a stretch, put the letter in front (your results go in your own `results/`):
+
+```bash
+STRETCH=B bash nclt/run_localize.sh
+```
+
 ## Where the data is
 
 After `setup_shared.sh`, these are in your folder. They are read-only.

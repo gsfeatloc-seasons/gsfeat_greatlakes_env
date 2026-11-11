@@ -15,6 +15,8 @@ export XDG_CACHE_HOME="$REPO_DIR/.cache"
 # superpoint_superglue_deployment only looks for its weights in this folder (about 100 MB).
 export TORCH_HOME="$HOME/.cache/torch"
 export NERFBASELINES_PREFIX="$REPO_DIR/.cache/nerfbaselines"
+# Splat methods that need their own environment (such as WildGaussians) are built here, so teammates share them.
+export NERFBASELINES_CONDA_ENVIRONMENTS="$REPO_DIR/.mamba/nerfbaselines-envs"
 export PIP_NO_CACHE_DIR=1
 export PYTHONNOUSERSITE=1
 export GSFEATLOC_BACKEND=python

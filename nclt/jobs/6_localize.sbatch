@@ -15,7 +15,6 @@ source ./activate.sh
 source nclt/config.sh
 unset DISPLAY WAYLAND_DISPLAY
 export MPLBACKEND=Agg
-export NERFBASELINES_BACKEND=python
 
 for session in $SESSIONS; do
     if [ ! -f "$STRETCH_DIR/queries/$session/poses.json" ]; then
@@ -23,6 +22,6 @@ for session in $SESSIONS; do
     fi
 done
 
-python -u nclt/localize.py --checkpoint "$SPLAT_DIR/checkpoint-30000" --sessions $SESSIONS --output "$RESULTS_DIR"
+python -u nclt/localize.py --checkpoint "$(latest_checkpoint)" --backend "$NB_BACKEND" --sessions $SESSIONS --output "$RESULTS_DIR"
 python nclt/show_results.py "$RESULTS_DIR"
 echo "PIPELINE COMPLETE"

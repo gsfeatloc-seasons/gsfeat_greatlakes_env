@@ -1,13 +1,14 @@
 """Runs GSFeatLoc on NCLT query photos against one splat, at several starting-pose errors.
 
 Differences from upstream gsfeatloc_cli.py, needed for outdoor, metric scenes:
-- depth scale comes from the checkpoint's world normalization
+- depth scale comes from the checkpoint's world normalization (gsplat), or is metres already
 - matches on sky, the robot, or invalid depth are removed before PnP
 - RANSAC runs 1000 iterations
 - a failed frame is recorded as failed, and still scored at its starting pose
 """
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -21,7 +22,7 @@ from gsfeatloc.feature_matcher import do_feature_matching_SPSG
 from gsfeatloc.pose_estimator import compute_3d_points, estimate_camera_pose, get_2d_feature_points
 from gsfeatloc.utils import get_world_frame_difference
 
-ROOT = Path("data/nclt/stretch_A/queries")
+ROOT = Path(os.environ.get("STRETCH_DIR", "data/nclt/stretch_A")) / "queries"
 # Starting-pose error: 95% of samples fall within (metres, degrees).
 LEVELS = [(1.0, 5.0), (3.0, 15.0), (10.0, 30.0)]
 THRESHOLDS = [(0.25, 2), (0.5, 5), (1.0, 10)]
@@ -33,8 +34,14 @@ VIS_COUNT = 3
 
 
 def checkpoint_depth_scale(checkpoint):
-    transform = json.loads((Path(checkpoint) / "parser.json").read_text())["transform"]
-    return 1.0 / float(np.linalg.norm(np.array(transform)[0, :3]))
+    """Metres per unit of rendered depth."""
+    parser = Path(checkpoint) / "parser.json"
+    if parser.exists():
+        # gsplat rescales the world before training and saves that transform here.
+        transform = json.loads(parser.read_text())["transform"]
+        return 1.0 / float(np.linalg.norm(np.array(transform)[0, :3]))
+    # Other methods train in the dataset's own frame, which is in metres.
+    return 1.0
 
 
 def robot_masks(width, height):
@@ -141,6 +148,7 @@ def main():
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--sessions", nargs="+", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--backend", default="python", help="python for gsplat, conda for methods with their own environment")
     args = parser.parse_args()
 
     out = Path(args.output)
@@ -149,7 +157,7 @@ def main():
     print(f"Depth scale from checkpoint: {depth_scale:.3f}")
 
     all_summaries = {}
-    with load_checkpoint(args.checkpoint, backend="python") as (model, _):
+    with load_checkpoint(args.checkpoint, backend=args.backend) as (model, _):
         for session in args.sessions:
             meta = json.loads((ROOT / session / "poses.json").read_text())
             width, height, focal = meta["width"], meta["height"], meta["focal"]

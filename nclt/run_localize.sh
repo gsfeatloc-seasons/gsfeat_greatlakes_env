@@ -1,13 +1,15 @@
 #!/bin/bash
 # Runs GSFeatLoc using data that is already prepared. Trains the splat first only if it doesn't exist yet.
 # Run from anywhere:  bash nclt/run_localize.sh
+# Another splat method:  METHOD=wild-gaussians bash nclt/run_localize.sh
 set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 mkdir -p logs
 source nclt/config.sh
 
-if [ -d "$SPLAT_DIR/checkpoint-30000" ]; then
+echo "Method: $METHOD   Splat: $SPLAT_DIR"
+if [ -n "$(latest_checkpoint)" ]; then
     localize=$(sbatch --parsable nclt/jobs/6_localize.sbatch)
 else
     train=$(sbatch --parsable nclt/jobs/5_train_splat.sbatch)

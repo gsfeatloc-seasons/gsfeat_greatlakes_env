@@ -38,4 +38,4 @@ if [ ! -f "$CALIB/U2D_Cam1_1616X1232.txt" ]; then
     rm "$CALIB/U2D_ALL.tar.gz"
 fi
 
-python -u nclt/time_windows.py nclt/stretch_A.json "$STRETCH_DIR" $SESSIONS
+python -u nclt/time_windows.py "nclt/stretch_$STRETCH.json" "$STRETCH_DIR" $SESSIONS
