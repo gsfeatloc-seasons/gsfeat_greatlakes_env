@@ -4,6 +4,8 @@ Tests whether [GSFeatLoc](https://github.com/jongwonjlee/gsfeatloc) can locate p
 
 The team shares one copy of the environment, corrected photos and trained splat. You don't install or download anything.
 
+**Just want the results?** Read [RESULTS.md](RESULTS.md).
+
 ## Start here
 
 ```bash
